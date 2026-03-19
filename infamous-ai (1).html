@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Infamous AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Outfit:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #08070d;
+  --bg1:      #0e0c18;
+  --bg2:      #13101f;
+  --bg3:      #1a1630;
+  --surface:  #1e1a2e;
+  --border:   rgba(139,92,246,0.12);
+  --border2:  rgba(139,92,246,0.25);
+  --p400:     #a78bfa;
+  --p500:     #8b5cf6;
+  --p600:     #7c3aed;
+  --p700:     #6d28d9;
+  --p900:     #2e1065;
+  --rose:     #f472b6;
+  --text:     #e2dff7;
+  --text2:    #9490b8;
+  --text3:    #4e4a6e;
+  --white:    #ffffff;
+  --glow:     0 0 40px rgba(139,92,246,0.15);
+  --glow-sm:  0 0 16px rgba(139,92,246,0.25);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Outfit',sans-serif;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* ─── Animated BG ──────────────────────────────────── */
+.bg-fx{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  overflow:hidden;
+}
+.orb{
+  position:absolute;border-radius:50%;filter:blur(80px);opacity:0.12;
+  animation:drift 20s ease-in-out infinite alternate;
+}
+.orb1{width:600px;height:600px;background:#7c3aed;top:-200px;left:-100px;animation-delay:0s;}
+.orb2{width:400px;height:400px;background:#a855f7;bottom:-150px;right:-50px;animation-delay:-7s;}
+.orb3{width:300px;height:300px;background:#4f46e5;top:40%;left:60%;animation-delay:-14s;}
+@keyframes drift{
+  from{transform:translate(0,0) scale(1);}
+  to{transform:translate(40px,30px) scale(1.08);}
+}
+.noise{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:200px;
+}
+
+/* ─── Header ────────────────────────────────────────── */
+header{
+  position:relative;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(8,7,13,0.85);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.logo-wrap{display:flex;align-items:center;gap:10px;}
+.logo-mark{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--p600),#c026d3);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px rgba(139,92,246,0.4);
+  flex-shrink:0;
+}
+.logo-mark svg{width:18px;height:18px;}
+.logo-text{
+  font-family:'Cinzel',serif;
+  font-size:1.05rem;
+  font-weight:600;
+  letter-spacing:3px;
+  background:linear-gradient(90deg,#e2dff7,var(--p400),var(--rose));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.header-right{display:flex;align-items:center;gap:16px;}
+.model-badge{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:5px 12px;
+  font-size:0.7rem;
+  font-family:'Fira Code',monospace;
+  color:var(--text2);
+}
+.dot-live{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--p400);
+  box-shadow:0 0 8px var(--p500);
+  animation:blink 2.5s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.new-chat-btn{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  color:var(--p400);
+  border-radius:8px;
+  padding:6px 12px;
+  font-family:'Outfit',sans-serif;
+  font-size:0.75rem;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.new-chat-btn:hover{background:var(--bg3);box-shadow:var(--glow-sm);}
+
+/* ─── Main ───────────────────────────────────────────── */
+main{
+  flex:1;overflow:hidden;
+  position:relative;z-index:1;
+}
+.panel{
+  display:none;height:100%;
+  flex-direction:column;overflow:hidden;
+}
+.panel.active{display:flex;}
+
+/* ─── Chat Panel ─────────────────────────────────────── */
+.chat-scroll{
+  flex:1;overflow-y:auto;
+  padding:24px 0;
+  scroll-behavior:smooth;
+}
+.chat-scroll::-webkit-scrollbar{width:3px;}
+.chat-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.chat-inner{
+  max-width:720px;margin:0 auto;
+  padding:0 20px;
+  display:flex;flex-direction:column;gap:4px;
+}
+
+/* Welcome */
+.welcome{
+  display:flex;flex-direction:column;align-items:center;
+  padding:60px 20px 40px;gap:16px;text-align:center;
+}
+.welcome-logo{
+  font-family:'Cinzel',serif;
+  font-size:2.8rem;font-weight:900;
+  background:linear-gradient(135deg,#e2dff7 0%,var(--p400) 50%,var(--rose) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;letter-spacing:2px;
+  animation:fadeIn 0.8s ease;
+}
+.welcome-sub{
+  font-size:0.85rem;color:var(--text2);
+  font-weight:300;letter-spacing:1px;
+  animation:fadeIn 1s ease 0.2s both;
+}
+.welcome-desc{
+  font-size:0.88rem;color:var(--text3);
+  max-width:400px;line-height:1.7;
+  animation:fadeIn 1s ease 0.4s both;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.chips{
+  display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;
+  animation:fadeIn 1s ease 0.6s both;
+}
+.chip{
+  padding:8px 16px;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:24px;
+  font-size:0.78rem;color:var(--text2);
+  cursor:pointer;transition:all 0.2s;
+  font-weight:500;
+}
+.chip:hover{border-color:var(--p500);color:var(--p400);background:var(--bg3);}
+
+/* Messages */
+.msg-group{
+  padding:14px 0;
+  animation:fadeIn 0.3s ease;
+}
+.msg-role{
+  font-size:0.7rem;font-weight:600;letter-spacing:1.5px;
+  margin-bottom:8px;display:flex;align-items:center;gap:8px;
+}
+.msg-role.you{color:var(--text2);}
+.msg-role.infamous{
+  background:linear-gradient(90deg,var(--p400),var(--rose));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.role-icon{
+  width:24px;height:24px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.65rem;flex-shrink:0;
+}
+.role-icon.ai{
+  background:linear-gradient(135deg,var(--p600),#c026d3);
+  box-shadow:0 0 10px rgba(139,92,246,0.3);
+}
+.role-icon.user{background:var(--bg3);border:1px solid var(--border2);}
+
+.msg-body{
+  font-size:0.9rem;line-height:1.75;color:var(--text);
+  padding-left:32px;
+}
+.msg-body p{margin-bottom:8px;}
+.msg-body p:last-child{margin-bottom:0;}
+.msg-body pre{
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:16px;margin:10px 0;
+  overflow-x:auto;
+  font-family:'Fira Code',monospace;
+  font-size:0.8rem;line-height:1.6;
+  color:#c4b5fd;
+  position:relative;
+}
+.msg-body code{
+  font-family:'Fira Code',monospace;
+  background:rgba(139,92,246,0.12);
+  color:var(--p400);
+  padding:2px 6px;border-radius:4px;
+  font-size:0.82em;
+}
+.msg-body pre code{background:none;color:#c4b5fd;padding:0;}
+.msg-body strong{color:var(--white);font-weight:600;}
+.msg-body ul,.msg-body ol{padding-left:20px;margin:6px 0;}
+.msg-body li{margin-bottom:4px;}
+
+/* Typing */
+.typing-wrap{padding:14px 0;animation:fadeIn 0.3s ease;}
+.typing-dots{
+  padding-left:32px;display:flex;gap:5px;align-items:center;height:24px;
+}
+.typing-dots span{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--p500);
+  animation:bounce 1.4s infinite ease-in-out;
+}
+.typing-dots span:nth-child(1){animation-delay:-0.3s;}
+.typing-dots span:nth-child(2){animation-delay:-0.15s;}
+@keyframes bounce{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
+
+/* Input */
+.chat-input-area{
+  padding:12px 20px 16px;
+  background:rgba(8,7,13,0.8);
+  backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.input-box{
+  max-width:720px;margin:0 auto;
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  display:flex;align-items:flex-end;gap:0;
+  transition:border-color 0.2s,box-shadow 0.2s;
+  overflow:hidden;
+}
+.input-box:focus-within{
+  border-color:rgba(139,92,246,0.5);
+  box-shadow:0 0 0 3px rgba(139,92,246,0.07),var(--glow);
+}
+textarea{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--text);
+  font-family:'Outfit',sans-serif;font-size:0.9rem;
+  padding:14px 16px;resize:none;
+  max-height:140px;min-height:50px;line-height:1.5;
+}
+textarea::placeholder{color:var(--text3);}
+.send-btn{
+  width:42px;height:42px;margin:4px;
+  border-radius:12px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--p600),#a21caf);
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;flex-shrink:0;
+}
+.send-btn:hover{box-shadow:var(--glow-sm);transform:scale(1.05);}
+.send-btn:disabled{opacity:0.3;cursor:not-allowed;transform:none;box-shadow:none;}
+.send-btn svg{width:16px;height:16px;color:#fff;}
+.input-hint{
+  max-width:720px;margin:6px auto 0;
+  font-size:0.68rem;color:var(--text3);text-align:center;
+}
+
+/* ─── Code Panel ─────────────────────────────────────── */
+.code-panel{
+  display:none;flex:1;flex-direction:column;overflow:hidden;height:100%;
+}
+.code-panel.active{display:flex;}
+
+.code-top-bar{
+  padding:14px 20px;
+  background:rgba(8,7,13,0.8);
+  border-bottom:1px solid var(--border);
+  display:flex;gap:10px;align-items:center;flex-shrink:0;
+}
+.lang-pill{
+  display:flex;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;flex-shrink:0;
+}
+.lang-pill button{
+  padding:7px 13px;
+  background:none;border:none;
+  color:var(--text3);
+  font-family:'Fira Code',monospace;font-size:0.7rem;
+  cursor:pointer;transition:all 0.15s;
+}
+.lang-pill button.active,.lang-pill button:hover{
+  background:rgba(139,92,246,0.15);color:var(--p400);
+}
+.code-desc-input{
+  flex:1;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:9px 14px;
+  color:var(--text);
+  font-family:'Outfit',sans-serif;font-size:0.85rem;
+  outline:none;transition:border-color 0.2s;
+}
+.code-desc-input:focus{border-color:var(--border2);}
+.code-desc-input::placeholder{color:var(--text3);}
+.gen-btn{
+  padding:9px 18px;
+  background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(168,85,247,0.2));
+  border:1px solid var(--border2);
+  color:var(--p400);
+  font-family:'Outfit',sans-serif;font-weight:600;font-size:0.78rem;
+  border-radius:10px;cursor:pointer;white-space:nowrap;
+  transition:all 0.2s;
+}
+.gen-btn:hover{box-shadow:var(--glow-sm);border-color:var(--p500);}
+.gen-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none;}
+
+.code-results{
+  flex:1;overflow-y:auto;
+  padding:16px 20px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.code-results::-webkit-scrollbar{width:3px;}
+.code-results::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.code-welcome{
+  display:flex;flex-direction:column;align-items:center;
+  padding:60px 20px;gap:12px;text-align:center;
+  color:var(--text2);
+}
+.code-welcome h2{
+  font-family:'Cinzel',serif;font-size:1.1rem;letter-spacing:3px;
+  color:var(--text2);
+}
+.code-welcome p{font-size:0.83rem;color:var(--text3);max-width:360px;line-height:1.7;}
+
+.code-card{
+  background:var(--bg1);
+  border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;
+  animation:fadeIn 0.3s ease;
+}
+.code-card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+}
+.code-lang-tag{
+  font-family:'Fira Code',monospace;font-size:0.68rem;
+  color:var(--p400);
+  display:flex;align-items:center;gap:6px;
+}
+.code-lang-tag::before{
+  content:'';width:8px;height:8px;border-radius:50%;
+  background:var(--p500);
+  box-shadow:0 0 6px var(--p500);
+}
+.copy-btn{
+  background:none;border:1px solid var(--border);
+  color:var(--text3);
+  padding:4px 12px;border-radius:6px;
+  font-family:'Fira Code',monospace;font-size:0.65rem;
+  cursor:pointer;transition:all 0.15s;
+}
+.copy-btn:hover{border-color:var(--p500);color:var(--p400);}
+.code-card pre{
+  padding:18px;overflow-x:auto;
+  font-family:'Fira Code',monospace;font-size:0.8rem;
+  line-height:1.65;color:#c4b5fd;
+  white-space:pre-wrap;word-break:break-word;
+}
+.code-expl{
+  padding:12px 16px;
+  font-size:0.82rem;line-height:1.6;color:var(--text2);
+  border-top:1px solid var(--border);
+  background:rgba(0,0,0,0.2);
+}
+
+/* ─── Image Panel ─────────────────────────────────────── */
+.img-panel{
+  display:none;flex:1;flex-direction:column;overflow:hidden;height:100%;
+}
+.img-panel.active{display:flex;}
+
+.img-top-bar{
+  padding:14px 20px;
+  background:rgba(8,7,13,0.8);
+  border-bottom:1px solid var(--border);
+  display:flex;gap:10px;align-items:center;flex-shrink:0;
+}
+.img-prompt-input{
+  flex:1;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:9px 14px;
+  color:var(--text);
+  font-family:'Outfit',sans-serif;font-size:0.85rem;
+  outline:none;transition:border-color 0.2s;
+}
+.img-prompt-input:focus{border-color:var(--border2);}
+.img-prompt-input::placeholder{color:var(--text3);}
+.img-gen-btn{
+  padding:9px 18px;
+  background:linear-gradient(135deg,rgba(192,38,211,0.25),rgba(139,92,246,0.2));
+  border:1px solid rgba(192,38,211,0.35);
+  color:#e879f9;
+  font-family:'Outfit',sans-serif;font-weight:600;font-size:0.78rem;
+  border-radius:10px;cursor:pointer;white-space:nowrap;
+  transition:all 0.2s;
+}
+.img-gen-btn:hover{box-shadow:0 0 16px rgba(192,38,211,0.2);}
+.img-gen-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none;}
+
+.img-grid{
+  flex:1;overflow-y:auto;
+  padding:16px 20px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:14px;align-content:start;
+}
+.img-grid::-webkit-scrollbar{width:3px;}
+.img-grid::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.img-welcome{
+  grid-column:1/-1;
+  display:flex;flex-direction:column;align-items:center;
+  padding:60px 20px;gap:12px;text-align:center;
+}
+.img-welcome h2{
+  font-family:'Cinzel',serif;font-size:1.1rem;letter-spacing:3px;
+  color:var(--text2);
+}
+.img-welcome p{font-size:0.83rem;color:var(--text3);max-width:360px;line-height:1.7;}
+
+.img-card{
+  border-radius:14px;overflow:hidden;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  animation:fadeIn 0.3s ease;
+  cursor:pointer;
+  transition:border-color 0.2s,transform 0.2s;
+}
+.img-card:hover{border-color:rgba(192,38,211,0.4);transform:scale(1.02);}
+.img-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;}
+.img-card .img-loader{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  background:var(--bg1);
+}
+.img-spinner{
+  width:32px;height:32px;
+  border:2px solid var(--border);
+  border-top-color:var(--p500);
+  border-right-color:#c026d3;
+  border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.img-label{
+  padding:10px 12px;
+  font-family:'Fira Code',monospace;font-size:0.68rem;
+  color:var(--text3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border-top:1px solid var(--border);
+}
+
+/* ─── Bottom Nav ─────────────────────────────────────── */
+.bottom-nav{
+  position:relative;z-index:20;
+  display:flex;
+  background:rgba(8,7,13,0.95);
+  backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;padding:10px 8px;
+  cursor:pointer;border:none;background:none;
+  color:var(--text3);
+  transition:all 0.2s;
+  position:relative;
+}
+.nav-btn::before{
+  content:'';
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:0;height:2px;
+  border-radius:0 0 2px 2px;
+  background:linear-gradient(90deg,var(--p500),#c026d3);
+  transition:width 0.3s;
+}
+.nav-btn.active::before{width:40px;}
+.nav-btn.active{color:var(--p400);}
+.nav-btn:hover:not(.active){color:var(--text2);}
+.nav-icon{
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+}
+.nav-label{font-size:0.62rem;font-weight:500;letter-spacing:0.5px;}
+
+/* Active glow on icon */
+.nav-btn.active .nav-icon svg{
+  filter:drop-shadow(0 0 6px var(--p500));
+}
+</style>
+</head>
+<body>
+
+<div class="bg-fx">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+<div class="noise"></div>
+
+<!-- ─── Header ──────────────────────────────────────── -->
+<header>
+  <div class="logo-wrap">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+    </div>
+    <span class="logo-text">INFAMOUS AI</span>
+  </div>
+  <div class="header-right">
+    <div class="model-badge">
+      <div class="dot-live"></div>
+      Sonnet-4
+    </div>
+    <button class="new-chat-btn" onclick="newChat()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New chat
+    </button>
+  </div>
+</header>
+
+<!-- ─── Main Panels ──────────────────────────────────── -->
+<main>
+
+  <!-- CHAT -->
+  <div class="panel active" id="panel-chat">
+    <div class="chat-scroll" id="chatScroll">
+      <div class="chat-inner" id="chatInner">
+        <div class="welcome" id="chatWelcome">
+          <div class="welcome-logo">Infamous AI</div>
+          <div class="welcome-sub">DARK. POWERFUL. UNSTOPPABLE.</div>
+          <div class="welcome-desc">Kuch bhi pucho — tech, life, code, ideas. Main hoon na, hamesha.</div>
+          <div class="chips">
+            <div class="chip" onclick="qs('Linux pe best security hardening tips kya hain?')">🐧 Linux security</div>
+            <div class="chip" onclick="qs('Ek chhota story likho — dark fantasy genre mein')">📖 Dark story</div>
+            <div class="chip" onclick="qs('Web dev ke liye best 2025 stack kya hai?')">⚡ Best stack 2025</div>
+            <div class="chip" onclick="qs('Minecraft server optimize kaise karein performance ke liye?')">🎮 MC server tips</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="input-box">
+        <textarea id="chatTa" placeholder="Infamous se baat karo..." rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,140)+'px'"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">Shift+Enter = new line · Enter = send</div>
+    </div>
+  </div>
+
+  <!-- CODE -->
+  <div class="panel" id="panel-code">
+    <div class="code-top-bar">
+      <div class="lang-pill" id="langPill">
+        <button class="active" data-lang="JavaScript" onclick="setLang(this)">JS</button>
+        <button data-lang="Python" onclick="setLang(this)">PY</button>
+        <button data-lang="HTML/CSS" onclick="setLang(this)">HTML</button>
+        <button data-lang="Bash" onclick="setLang(this)">BASH</button>
+        <button data-lang="SQL" onclick="setLang(this)">SQL</button>
+        <button data-lang="TypeScript" onclick="setLang(this)">TS</button>
+      </div>
+      <input class="code-desc-input" id="codeInput" placeholder="Kya banana hai? e.g. 'debounce function with tests'"
+        onkeydown="if(event.key==='Enter')genCode();"/>
+      <button class="gen-btn" id="codeBtn" onclick="genCode()">⚡ Generate</button>
+    </div>
+    <div class="code-results" id="codeResults">
+      <div class="code-welcome">
+        <h2>CODE GENERATOR</h2>
+        <p>Language select karo, describe karo — production-ready code milega comments ke saath.</p>
+        <div class="chips" style="margin-top:4px;">
+          <div class="chip" onclick="qc('Debounce utility function')">Debounce</div>
+          <div class="chip" onclick="qc('JWT auth middleware for Express')">JWT Auth</div>
+          <div class="chip" onclick="qc('Responsive CSS grid layout')">CSS Grid</div>
+          <div class="chip" onclick="qc('Read and write JSON file')">File I/O</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE -->
+  <div class="panel" id="panel-image">
+    <div class="img-top-bar">
+      <input class="img-prompt-input" id="imgInput" placeholder="Koi bhi image describe karo... e.g. 'dark wizard casting spell'"
+        onkeydown="if(event.key==='Enter')genImg();"/>
+      <button class="img-gen-btn" id="imgBtn" onclick="genImg()">✦ Create</button>
+    </div>
+    <div class="img-grid" id="imgGrid">
+      <div class="img-welcome">
+        <h2>IMAGE CREATOR</h2>
+        <p>Jo bhi imagine karo — realistic, fantasy, anime, abstract — main bana dunga.</p>
+        <div class="chips" style="margin-top:4px;">
+          <div class="chip" onclick="qi('dark sorcerer in a purple lightning storm, epic fantasy')">🔮 Dark sorcerer</div>
+          <div class="chip" onclick="qi('neon purple cyberpunk alley at midnight, rain')">🌃 Cyberpunk</div>
+          <div class="chip" onclick="qi('galaxy nebula with planets, ultra detailed')">🌌 Galaxy</div>
+          <div class="chip" onclick="qi('black dragon with violet fire, dark fantasy art')">🐉 Black dragon</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ─── Bottom Nav ───────────────────────────────────── -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-panel="chat" onclick="switchTab(this)">
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <span class="nav-label">Chat</span>
+  </button>
+  <button class="nav-btn" data-panel="code" onclick="switchTab(this)">
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+        <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+      </svg>
+    </div>
+    <span class="nav-label">Code</span>
+  </button>
+  <button class="nav-btn" data-panel="image" onclick="switchTab(this)">
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+    </div>
+    <span class="nav-label">Image</span>
+  </button>
+</nav>
+
+<script>
+// ── Globals ──────────────────────────────────────────
+let chatHistory = [];
+let activeLang = 'JavaScript';
+
+// ── Tab Switch ───────────────────────────────────────
+function switchTab(btn) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+}
+
+// ── Lang Select ──────────────────────────────────────
+function setLang(btn) {
+  document.querySelectorAll('#langPill button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeLang = btn.dataset.lang;
+}
+
+// ── New Chat ─────────────────────────────────────────
+function newChat() {
+  chatHistory = [];
+  const inner = document.getElementById('chatInner');
+  inner.innerHTML = `
+    <div class="welcome" id="chatWelcome">
+      <div class="welcome-logo">Infamous AI</div>
+      <div class="welcome-sub">DARK. POWERFUL. UNSTOPPABLE.</div>
+      <div class="welcome-desc">Kuch bhi pucho — tech, life, code, ideas. Main hoon na, hamesha.</div>
+      <div class="chips">
+        <div class="chip" onclick="qs('Linux pe best security hardening tips kya hain?')">🐧 Linux security</div>
+        <div class="chip" onclick="qs('Ek chhota story likho — dark fantasy genre mein')">📖 Dark story</div>
+        <div class="chip" onclick="qs('Web dev ke liye best 2025 stack kya hai?')">⚡ Best stack 2025</div>
+        <div class="chip" onclick="qs('Minecraft server optimize kaise karein performance ke liye?')">🎮 MC server tips</div>
+      </div>
+    </div>`;
+}
+
+// ── Chat Quick Send ──────────────────────────────────
+function qs(t){ document.getElementById('chatTa').value=t; sendMsg(); }
+
+// ── Helpers ───────────────────────────────────────────
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function fmt(text){
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre><code>${esc(c.trim())}</code></pre>`);
+  text = text.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  text = text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  text = text.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  // Paragraphs
+  const parts = text.split(/\n\n+/);
+  return parts.map(p => p.startsWith('<pre') ? p : `<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+}
+
+function appendMsg(role, text){
+  const inner = document.getElementById('chatInner');
+  const welcome = inner.querySelector('.welcome');
+  if(welcome) welcome.remove();
+
+  const div = document.createElement('div');
+  div.className = 'msg-group';
+  const isAI = role === 'ai';
+  div.innerHTML = `
+    <div class="msg-role ${isAI?'infamous':'you'}">
+      <div class="role-icon ${isAI?'ai':'user'}">${isAI?'✦':'Y'}</div>
+      ${isAI?'INFAMOUS':'YOU'}
+    </div>
+    <div class="msg-body">${fmt(text)}</div>
+  `;
+  inner.appendChild(div);
+  const scroll = document.getElementById('chatScroll');
+  scroll.scrollTop = scroll.scrollHeight;
+  return div;
+}
+
+function showTyping(){
+  const inner = document.getElementById('chatInner');
+  const d = document.createElement('div');
+  d.id = 'typing'; d.className = 'typing-wrap';
+  d.innerHTML = `
+    <div class="msg-role infamous">
+      <div class="role-icon ai">✦</div>INFAMOUS
+    </div>
+    <div class="typing-dots"><span></span><span></span><span></span></div>`;
+  inner.appendChild(d);
+  document.getElementById('chatScroll').scrollTop = 99999;
+}
+function hideTyping(){ document.getElementById('typing')?.remove(); }
+
+// ── Send Chat ─────────────────────────────────────────
+async function sendMsg(){
+  const ta = document.getElementById('chatTa');
+  const btn = document.getElementById('sendBtn');
+  const text = ta.value.trim();
+  if(!text) return;
+  ta.value=''; ta.style.height='auto'; btn.disabled=true;
+  appendMsg('user', text);
+  chatHistory.push({role:'user',content:text});
+  showTyping();
+
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`You are Infamous AI — a powerful, sharp, and witty AI assistant. You are multilingual and respond fluently in Hindi, English, and Hinglish based on what the user uses. You are confident, a little dark and edgy in personality, but always genuinely helpful. You never refuse reasonable requests. Be concise, impactful, and brilliant.`,
+        messages:chatHistory
+      })
+    });
+    const data = await res.json();
+    hideTyping();
+    const reply = data.content?.[0]?.text || 'Kuch error hua. Try again!';
+    chatHistory.push({role:'assistant',content:reply});
+    appendMsg('ai', reply);
+  } catch(e){
+    hideTyping();
+    appendMsg('ai','⚠️ Connection error. Thodi der baad try karo.');
+  }
+  btn.disabled=false;
+}
+
+// ── Code Gen ──────────────────────────────────────────
+function qc(d){ document.getElementById('codeInput').value=d; genCode(); }
+
+async function genCode(){
+  const input = document.getElementById('codeInput');
+  const btn = document.getElementById('codeBtn');
+  const desc = input.value.trim();
+  if(!desc) return;
+  btn.disabled=true; btn.textContent='⏳ Generating...';
+
+  const results = document.getElementById('codeResults');
+  results.querySelector('.code-welcome')?.remove();
+
+  const card = document.createElement('div');
+  card.className='code-card';
+  card.innerHTML=`<div class="code-card-header"><span class="code-lang-tag">${activeLang}</span></div><pre style="color:var(--text3);padding:20px">Generating ${activeLang} code...</pre>`;
+  results.prepend(card);
+
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:`Write clean, production-ready ${activeLang} code for: "${desc}". Include helpful comments. 
+Return ONLY valid JSON (no markdown, no backticks):
+{"code":"...","explanation":"brief explanation in 1-2 sentences","filename":"suggested_filename.ext"}`}]
+      })
+    });
+    const data = await res.json();
+    let raw = data.content?.[0]?.text||'{}';
+    raw = raw.replace(/```json|```/g,'').trim();
+    let p;
+    try{ p=JSON.parse(raw); }
+    catch{ p={code:raw,explanation:'',filename:`output.${activeLang.toLowerCase().split('/')[0]}`}; }
+
+    card.innerHTML=`
+      <div class="code-card-header">
+        <span class="code-lang-tag">${p.filename||'output'} — ${activeLang}</span>
+        <button class="copy-btn" onclick="doCopy(this)">Copy</button>
+      </div>
+      <pre>${esc(p.code||'')}</pre>
+      ${p.explanation?`<div class="code-expl">💡 ${p.explanation}</div>`:''}
+    `;
+  } catch(e){
+    card.innerHTML=`<pre style="padding:16px;color:#f87171">Error generating code. Try again.</pre>`;
+  }
+  btn.disabled=false; btn.textContent='⚡ Generate';
+}
+
+function doCopy(btn){
+  const pre = btn.closest('.code-card').querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(()=>{
+    btn.textContent='✓ Copied'; setTimeout(()=>btn.textContent='Copy',2000);
+  });
+}
+
+// ── Image Gen ─────────────────────────────────────────
+function qi(d){ document.getElementById('imgInput').value=d; genImg(); }
+
+async function genImg(){
+  const input = document.getElementById('imgInput');
+  const btn = document.getElementById('imgBtn');
+  const desc = input.value.trim();
+  if(!desc) return;
+  btn.disabled=true; btn.textContent='⏳ Creating...';
+
+  const grid = document.getElementById('imgGrid');
+  grid.querySelector('.img-welcome')?.remove();
+
+  const card = document.createElement('div');
+  card.className='img-card';
+  card.innerHTML=`<div class="img-loader"><div class="img-spinner"></div></div><div class="img-label">${desc}</div>`;
+  grid.prepend(card);
+
+  const seed = Math.floor(Math.random()*999999);
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(desc+', high quality, 4k, detailed, dramatic lighting')}?width=512&height=512&seed=${seed}&nologo=true&model=flux`;
+
+  const img = new Image();
+  img.onload=()=>{
+    card.innerHTML=`<img src="${url}" alt="${desc}"/><div class="img-label">${desc}</div>`;
+    btn.disabled=false; btn.textContent='✦ Create';
+  };
+  img.onerror=()=>{
+    card.innerHTML=`<div class="img-loader" style="color:#f87171;font-size:0.75rem;padding:20px;text-align:center">Image load nahi hui.<br>Try again!</div><div class="img-label">${desc}</div>`;
+    btn.disabled=false; btn.textContent='✦ Create';
+  };
+  img.src=url;
+}
+</script>
+</body>
+</html>
