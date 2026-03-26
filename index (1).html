@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Infamous AI v1.1</title>
+  <meta name="description" content="Infamous AI v1.1 — Developer-focused AI chatbot" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════════════════════ -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <h1>⚡ INFAMOUS AI</h1>
+      <p>v1.1 — Developer-Focused AI Assistant</p>
+    </div>
+
+    <div class="tab-btns">
+      <button class="tab-btn active" data-tab="login">Login</button>
+      <button class="tab-btn" data-tab="signup">Sign Up</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-form" class="auth-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button class="btn-primary" id="login-btn">LOGIN →</button>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signup-form" class="auth-form" style="display:none">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="signup-name" placeholder="Your name" autocomplete="name" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signup-pass" placeholder="Create password" autocomplete="new-password" />
+      </div>
+      <button class="btn-primary" id="signup-btn">CREATE ACCOUNT →</button>
+    </div>
+
+    <p class="auth-error" id="auth-error"></p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CHAT DASHBOARD
+═══════════════════════════════════════════════════════ -->
+<div id="chat-screen" class="screen">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>⚡ INFAMOUS AI</h2>
+      <small>v1.1</small>
+    </div>
+
+    <button class="btn-new-chat" id="new-chat-btn">
+      <span>＋</span> New Chat
+    </button>
+
+    <div class="chat-list" id="chat-list"></div>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="u-name" id="sb-username">User</div>
+        <div class="u-email" id="sb-email">user@mail.com</div>
+        <div class="plan-badge" id="sb-plan">Free</div>
+        <div class="msg-counter" id="sb-counter"></div>
+      </div>
+      <div class="footer-btns">
+        <button class="btn-sm" id="plans-btn">💎 Plans</button>
+        <button class="btn-sm danger" id="logout-btn">⏏ Logout</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CHAT -->
+  <main class="chat-main">
+    <div class="chat-topbar">
+      <div>
+        <span class="status-dot"></span>
+        <span id="chat-title" class="chat-topbar-title" style="font-family:var(--font-mono);font-size:14px">New Chat</span>
+      </div>
+      <span style="font-size:11px;color:var(--text-dim);font-family:var(--font-mono)">Powered by Gemini</span>
+    </div>
+
+    <div class="messages-area" id="messages-area">
+      <div class="welcome-msg">
+        <h2>⚡ Infamous AI v1.1</h2>
+        <p>Developer-focused AI. Ask me anything — code, debugging, concepts.</p>
+      </div>
+    </div>
+
+    <div class="limit-warning" id="limit-warning" style="display:none"></div>
+
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="msg-input" placeholder="Ask anything... (Shift+Enter for newline)" rows="1"></textarea>
+      </div>
+      <button class="btn-send" id="send-btn" title="Send">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PLANS PAGE
+═══════════════════════════════════════════════════════ -->
+<div id="plans-screen" class="screen">
+  <div class="plans-header">
+    <h1>💎 UPGRADE PLAN</h1>
+    <p>More messages, more power. Pay once, use all day.</p>
+  </div>
+
+  <div class="plans-grid" id="plans-grid">
+    <!-- Populated by JS -->
+  </div>
+
+  <button class="btn-back" id="plans-back-btn">← Back to Chat</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PAYMENT MODAL
+═══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <h2 id="modal-plan-name">Plan Name</h2>
+    <p id="modal-plan-price">Price info</p>
+
+    <!-- Replace the img src with your actual UPI QR code image -->
+    <div class="qr-placeholder">
+      <div class="qr-demo">
+        ████ ██ ████<br>
+        █  ██████  █<br>
+        █ █ ████ █ █<br>
+        █ █  ██  █ █<br>
+        ████ ██ ████<br>
+        <br>
+        [ QR Code ]<br>
+        Replace with<br>
+        your UPI QR
+      </div>
+    </div>
+
+    <div class="modal-instructions">
+      <p>
+        <strong>Step 1:</strong> Scan QR &amp; pay the exact amount.<br>
+        <strong>Step 2:</strong> Take a screenshot of payment.<br>
+        <strong>Step 3:</strong> Contact admin: <strong>aryan11222567@gmail.com</strong><br>
+        <strong>Step 4:</strong> Admin will activate your plan manually.
+      </p>
+    </div>
+
+    <button class="modal-close" id="modal-close-btn">✕ Close</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ADMIN PANEL
+═══════════════════════════════════════════════════════ -->
+<div id="admin-screen" class="screen">
+
+  <div class="admin-topbar">
+    <div>
+      <span style="font-family:var(--font-mono);color:var(--neon);font-size:16px;letter-spacing:2px">⚡ INFAMOUS AI</span>
+      <span class="admin-badge">ADMIN</span>
+    </div>
+    <button class="btn-logout" id="admin-logout">⏏ Logout</button>
+  </div>
+
+  <div class="admin-body">
+
+    <!-- Admin Sidebar Nav -->
+    <nav class="admin-sidebar">
+      <div class="admin-nav-item active" data-panel="panel-overview">
+        <span class="nav-icon">📊</span> Overview
+      </div>
+      <div class="admin-nav-item" data-panel="panel-users">
+        <span class="nav-icon">👥</span> Users
+      </div>
+      <div class="admin-nav-item" data-panel="panel-logs">
+        <span class="nav-icon">🖥</span> Console
+      </div>
+    </nav>
+
+    <!-- Admin Content -->
+    <div class="admin-content">
+
+      <!-- OVERVIEW -->
+      <div class="admin-panel active" id="panel-overview">
+        <div class="panel-title">// OVERVIEW</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="s-val" id="stat-total">0</div>
+            <div class="s-lbl">Total Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="s-val" id="stat-paid">0</div>
+            <div class="s-lbl">Paid Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="s-val" id="stat-free">0</div>
+            <div class="s-lbl">Free Tier</div>
+          </div>
+          <div class="stat-card">
+            <div class="s-val" id="stat-top">0</div>
+            <div class="s-lbl">Bedrock Users</div>
+          </div>
+        </div>
+        <div style="color:var(--text-dim);font-size:13px;font-family:var(--font-mono);line-height:2">
+          <div style="color:var(--neon)">// PLANS PRICING</div>
+          <div>Free     → 10 msgs/day — Free</div>
+          <div>Dirt     → 25 msgs/day — ₹69  ($0.83)</div>
+          <div>Stone    → 50 msgs/day — ₹149 ($1.79)</div>
+          <div>Obsidian → 80 msgs/day — ₹229 ($2.75)</div>
+          <div>Bedrock  → 150 msgs/day — ₹299 ($3.60)</div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="admin-panel" id="panel-users">
+        <div class="panel-title">// USER MANAGEMENT</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Plan</th>
+                <th>Usage Today</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- LOGS -->
+      <div class="admin-panel" id="panel-logs">
+        <div class="panel-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>// CONSOLE LOG</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn-sm" id="refresh-logs-btn" style="width:auto;padding:6px 12px">↻ Refresh</button>
+            <button class="btn-sm danger" id="clear-logs-btn" style="width:auto;padding:6px 12px">✕ Clear</button>
+          </div>
+        </div>
+        <div class="console-box" id="console-box">
+          <div class="log-line" style="color:var(--text-dim)">Waiting for logs...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
